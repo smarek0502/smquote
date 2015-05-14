@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import ystockquote
-from datetime import date
+import datetime
 import pickle
 import os
 import csv
@@ -21,7 +21,7 @@ get historical data from a stock ticker name
 """
 def getsavedata(stk):
     firstday = '2013-01-01'
-    today    = date.today().strftime('%Y-%m-%d')
+    today    = datetime.date.today().strftime('%Y-%m-%d')
 
     savename=getsavename(stk,'.p')
 
@@ -34,8 +34,12 @@ def getsavedata(stk):
       lastquote = sorted(quotes.keys())[-1]
 
       # update with new values
-      if lastquote != today:
+      prevdate = datetime.datetime.strptime(today,'%Y-%m-%d') - datetime.timedelta(days=1)
+      prevdate=prevdate.strftime('%Y-%m-%d')
+      if lastquote != prevdate:
          nextdate = datetime.datetime.strptime(lastquote,'%Y-%m-%d') + datetime.timedelta(days=1)
+         nextdate=nextdate.strftime('%Y-%m-%d')
+         pprint([prevdate, lastquote,nextdate,today])
          quotes.update( ystockquote.get_historical_prices(stk,nextdate,today) )
          savestock(stk,quotes)
 
@@ -54,11 +58,12 @@ ystockquote format to csv ( for R)
 """
 def ystocktoCSV(stk,quotes):
    savename=getsavename(stk,'.csv')
+   columns=['Adj Close','Close','High','Low','Open','Volume']
    # date, 'Close', 'High', 'Low', 'Open', 'Volume','Adj Close'
-   twod = [  [k]+[vv for  kk,vv in v.items()] for k,v in quotes.items() ]
+   twod = [  [k]+[v[c] for c in columns] for k,v in quotes.items() ]
    with open(savename,'w',newline='') as csvfile:
      w = csv.writer(csvfile,quoting=csv.QUOTE_MINIMAL)
-     w.writerow(['Date','Close','High','Low','Open','Volume','AdjClose'])
+     w.writerow(['Name','Date'] + columns)
      for line in twod:
        w.writerow([stk]+line)
 
